@@ -1,20 +1,21 @@
-import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
+import express from "express";
 
 import {
     AgentRuntime,
     elizaLogger,
     getEnvVariable,
+    ServiceType,
+    stringToUuid,
     UUID,
     validateCharacterConfig,
-    ServiceType,
 } from "@elizaos/core";
 
+import { validateUuid } from "@elizaos/core";
 import { TeeLogQuery, TeeLogService } from "@elizaos/plugin-tee-log";
 import { REST, Routes } from "discord.js";
 import { DirectClient } from ".";
-import { validateUuid } from "@elizaos/core";
 
 interface UUIDParams {
     agentId: UUID;
@@ -243,18 +244,20 @@ export function createApiRouter(
 
             for (const agentRuntime of agents.values()) {
                 const teeLogService = agentRuntime
-                    .getService<TeeLogService>(
-                    ServiceType.TEE_LOG
-                )
-                .getInstance();
+                    .getService<TeeLogService>(ServiceType.TEE_LOG)
+                    .getInstance();
 
                 const agents = await teeLogService.getAllAgents();
-                allAgents.push(...agents)
+                allAgents.push(...agents);
             }
 
             const runtime: AgentRuntime = agents.values().next().value;
-            const teeLogService = runtime.getService<TeeLogService>(ServiceType.TEE_LOG).getInstance();
-            const attestation = await teeLogService.generateAttestation(JSON.stringify(allAgents));
+            const teeLogService = runtime
+                .getService<TeeLogService>(ServiceType.TEE_LOG)
+                .getInstance();
+            const attestation = await teeLogService.generateAttestation(
+                JSON.stringify(allAgents)
+            );
             res.json({ agents: allAgents, attestation: attestation });
         } catch (error) {
             elizaLogger.error("Failed to get TEE agents:", error);
@@ -274,13 +277,13 @@ export function createApiRouter(
             }
 
             const teeLogService = agentRuntime
-                .getService<TeeLogService>(
-                ServiceType.TEE_LOG
-            )
-            .getInstance();
+                .getService<TeeLogService>(ServiceType.TEE_LOG)
+                .getInstance();
 
             const teeAgent = await teeLogService.getAgent(agentId);
-            const attestation = await teeLogService.generateAttestation(JSON.stringify(teeAgent));
+            const attestation = await teeLogService.generateAttestation(
+                JSON.stringify(teeAgent)
+            );
             res.json({ agent: teeAgent, attestation: attestation });
         } catch (error) {
             elizaLogger.error("Failed to get TEE agent:", error);
@@ -309,12 +312,16 @@ export function createApiRouter(
                 };
                 const agentRuntime: AgentRuntime = agents.values().next().value;
                 const teeLogService = agentRuntime
-                    .getService<TeeLogService>(
-                        ServiceType.TEE_LOG
-                    )
+                    .getService<TeeLogService>(ServiceType.TEE_LOG)
                     .getInstance();
-                const pageQuery = await teeLogService.getLogs(teeLogQuery, page, pageSize);
-                const attestation = await teeLogService.generateAttestation(JSON.stringify(pageQuery));
+                const pageQuery = await teeLogService.getLogs(
+                    teeLogQuery,
+                    page,
+                    pageSize
+                );
+                const attestation = await teeLogService.generateAttestation(
+                    JSON.stringify(pageQuery)
+                );
                 res.json({
                     logs: pageQuery,
                     attestation: attestation,
@@ -327,6 +334,193 @@ export function createApiRouter(
             }
         }
     );
+
+    router.post("/agents/:agentId/knowledge", async (req, res) => {
+        const { agentId } = validateUUIDParams(req.params, res) ?? {
+            agentId: null,
+        };
+        if (!agentId) return;
+
+        const runtime = agents.get(agentId);
+        if (!runtime) {
+            res.status(404).json({ error: "Agent not found" });
+            return;
+        }
+
+        try {
+            const { text, metadata = {}, id } = req.body;
+
+            if (!text) {
+                res.status(400).json({ error: "Text content is required" });
+                return;
+            }
+
+            const knowledgeId = id ? stringToUuid(id) : stringToUuid(text);
+
+            await runtime.ragKnowledgeManager.createKnowledge({
+                id: knowledgeId,
+                agentId: runtime.agentId,
+                content: {
+                    text,
+                    metadata: {
+                        type: "direct",
+                        ...metadata,
+                    },
+                },
+            });
+
+            res.json({
+                success: true,
+                id: knowledgeId,
+                message: "Knowledge added successfully",
+            });
+        } catch (error) {
+            elizaLogger.error("Error adding knowledge:", error);
+            res.status(500).json({
+                error: "Failed to add knowledge",
+                details: error.message,
+            });
+        }
+    });
+
+    router.get("/agents/:agentId/knowledge", async (req, res) => {
+        const { agentId } = validateUUIDParams(req.params, res) ?? {
+            agentId: null,
+        };
+        if (!agentId) return;
+
+        const runtime = agents.get(agentId);
+        if (!runtime) {
+            res.status(404).json({ error: "Agent not found" });
+            return;
+        }
+
+        try {
+            const { query, limit = 10 } = req.query;
+
+            const knowledge = await runtime.ragKnowledgeManager.getKnowledge({
+                query: query as string,
+                limit: Number(limit),
+                agentId: runtime.agentId,
+            });
+
+            res.json({ knowledge });
+        } catch (error) {
+            elizaLogger.error("Error retrieving knowledge:", error);
+            res.status(500).json({
+                error: "Failed to retrieve knowledge",
+                details: error.message,
+            });
+        }
+    });
+
+    router.delete(
+        "/agents/:agentId/knowledge/:knowledgeId",
+        async (req, res) => {
+            const { agentId } = validateUUIDParams(req.params, res) ?? {
+                agentId: null,
+            };
+            if (!agentId) return;
+
+            const runtime = agents.get(agentId);
+            if (!runtime) {
+                res.status(404).json({ error: "Agent not found" });
+                return;
+            }
+
+            try {
+                const knowledgeId = validateUuid(req.params.knowledgeId);
+                if (!knowledgeId) {
+                    res.status(400).json({
+                        error: "Invalid knowledge ID format",
+                    });
+                    return;
+                }
+
+                await runtime.ragKnowledgeManager.removeKnowledge(knowledgeId);
+                console.log("Knowledge removed successfully");
+
+                res.json({
+                    success: true,
+                    message: "Knowledge removed successfully",
+                });
+            } catch (error) {
+                elizaLogger.error("Error removing knowledge:", error);
+                res.status(500).json({
+                    error: "Failed to remove knowledge",
+                    details: error.message,
+                });
+            }
+        }
+    );
+
+    router.post("/agents/:agentId/knowledge/bulk", async (req, res) => {
+        const { agentId } = validateUUIDParams(req.params, res) ?? {
+            agentId: null,
+        };
+        if (!agentId) return;
+
+        const runtime = agents.get(agentId);
+        if (!runtime) {
+            res.status(404).json({ error: "Agent not found" });
+            return;
+        }
+
+        try {
+            const { items } = req.body;
+
+            if (!Array.isArray(items)) {
+                res.status(400).json({ error: "Items must be an array" });
+                return;
+            }
+
+            const results = await Promise.all(
+                items.map(async (item) => {
+                    const { text, metadata = {}, id } = item;
+                    const knowledgeId = id
+                        ? stringToUuid(id)
+                        : stringToUuid(text);
+
+                    try {
+                        await runtime.ragKnowledgeManager.createKnowledge({
+                            id: knowledgeId,
+                            agentId: runtime.agentId,
+                            content: {
+                                text,
+                                metadata: {
+                                    type: "direct",
+                                    ...metadata,
+                                },
+                            },
+                        });
+
+                        return {
+                            success: true,
+                            id: knowledgeId,
+                            text: text.substring(0, 50) + "...",
+                        };
+                    } catch (error) {
+                        return {
+                            success: false,
+                            error: error.message,
+                            text: text.substring(0, 50) + "...",
+                        };
+                    }
+                })
+            );
+
+            res.json({
+                success: true,
+                results,
+            });
+        } catch (error) {
+            elizaLogger.error("Error in bulk knowledge upload:", error);
+            res.status(500).json({
+                error: "Failed to process bulk knowledge upload",
+                details: error.message,
+            });
+        }
+    });
 
     return router;
 }
