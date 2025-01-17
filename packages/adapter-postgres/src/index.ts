@@ -1590,7 +1590,7 @@ export class PostgresDatabaseAdapter
             const sql = `
                 WITH vector_scores AS (
                     SELECT id,
-                        1 - (embedding <-> $1::vector) as vector_score
+                        1 - (embedding <=> $1::vector) as vector_score
                     FROM knowledge
                     WHERE ("agentId" IS NULL AND "isShared" = true) OR "agentId" = $2
                     AND embedding IS NOT NULL

@@ -1,30 +1,33 @@
+import {
+    AgentRuntime,
+    Client,
+    composeContext,
+    Content,
+    elizaLogger,
+    generateCaption,
+    generateImage,
+    generateMessageResponse,
+    generateObject,
+    getEmbeddingZeroVector,
+    IAgentRuntime,
+    Media,
+    Memory,
+    messageCompletionFooter,
+    ModelClass,
+    settings,
+    stringToUuid,
+} from "@elizaos/core";
+
 import bodyParser from "body-parser";
 import cors from "cors";
 import express, { type Request as ExpressRequest } from "express";
 import multer from "multer";
 import { z } from "zod";
-import {
-    type AgentRuntime,
-    elizaLogger,
-    messageCompletionFooter,
-    generateCaption,
-    generateImage,
-    type Media,
-    getEmbeddingZeroVector,
-    composeContext,
-    generateMessageResponse,
-    generateObject,
-    type Content,
-    type Memory,
-    ModelClass,
-    type Client,
-    stringToUuid,
-    settings,
-    type IAgentRuntime,
-} from "@elizaos/core";
+
 import { createApiRouter } from "./api.ts";
 import * as fs from "fs";
 import * as path from "path";
+
 import { createVerifiableLogApiRouter } from "./verifiable-log-api.ts";
 import OpenAI from "openai";
 
@@ -49,29 +52,14 @@ const upload = multer({ storage /*: multer.memoryStorage() */ });
 export const messageHandlerTemplate =
     // {{goals}}
     // "# Action Examples" is already included
-    `{{actionExamples}}
-(Action examples are for reference only. Do not use the information from them in your response.)
-
-# Knowledge
+    `# Knowledge
 {{knowledge}}
 
-# Task: Generate dialog and actions for the character {{agentName}}.
+# Task: Generate dialog for the character {{agentName}}.
 About {{agentName}}:
 {{bio}}
-{{lore}}
-
-{{providers}}
-
-{{attachments}}
-
-# Capabilities
-Note that {{agentName}} is capable of reading/seeing/hearing various forms of media, including images, videos, audio, plaintext and PDFs. Recent attachments have been included above under the "Attachments" section.
-
-{{messageDirections}}
 
 {{recentMessages}}
-
-{{actions}}
 
 # Instructions: Write the next message for {{agentName}}.
 ` + messageCompletionFooter;
