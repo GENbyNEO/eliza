@@ -1,31 +1,31 @@
+import {
+    AgentRuntime,
+    Client,
+    composeContext,
+    Content,
+    elizaLogger,
+    generateCaption,
+    generateImage,
+    generateMessageResponse,
+    generateObject,
+    getEmbeddingZeroVector,
+    IAgentRuntime,
+    Media,
+    Memory,
+    messageCompletionFooter,
+    ModelClass,
+    settings,
+    stringToUuid,
+} from "@elizaos/core";
 import bodyParser from "body-parser";
 import cors from "cors";
 import express, { Request as ExpressRequest } from "express";
-import multer from "multer";
-import { z } from "zod";
-import {
-    AgentRuntime,
-    elizaLogger,
-    messageCompletionFooter,
-    generateCaption,
-    generateImage,
-    Media,
-    getEmbeddingZeroVector,
-    composeContext,
-    generateMessageResponse,
-    generateObject,
-    Content,
-    Memory,
-    ModelClass,
-    Client,
-    stringToUuid,
-    settings,
-    IAgentRuntime,
-} from "@elizaos/core";
-import { createApiRouter } from "./api.ts";
 import * as fs from "fs";
-import * as path from "path";
+import multer from "multer";
 import OpenAI from "openai";
+import * as path from "path";
+import { z } from "zod";
+import { createApiRouter } from "./api.ts";
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -48,29 +48,14 @@ const upload = multer({ storage /*: multer.memoryStorage() */ });
 export const messageHandlerTemplate =
     // {{goals}}
     // "# Action Examples" is already included
-    `{{actionExamples}}
-(Action examples are for reference only. Do not use the information from them in your response.)
-
-# Knowledge
+    `# Knowledge
 {{knowledge}}
 
-# Task: Generate dialog and actions for the character {{agentName}}.
+# Task: Generate dialog for the character {{agentName}}.
 About {{agentName}}:
 {{bio}}
-{{lore}}
-
-{{providers}}
-
-{{attachments}}
-
-# Capabilities
-Note that {{agentName}} is capable of reading/seeing/hearing various forms of media, including images, videos, audio, plaintext and PDFs. Recent attachments have been included above under the "Attachments" section.
-
-{{messageDirections}}
 
 {{recentMessages}}
-
-{{actions}}
 
 # Instructions: Write the next message for {{agentName}}.
 ` + messageCompletionFooter;
@@ -550,38 +535,42 @@ export class DirectClient {
                         content: contentObj,
                     };
 
-                    runtime.messageManager.createMemory(responseMessage).then(() => {
-                          const messageId = stringToUuid(Date.now().toString());
-                          const memory: Memory = {
-                              id: messageId,
-                              agentId: runtime.agentId,
-                              userId,
-                              roomId,
-                              content,
-                              createdAt: Date.now(),
-                          };
+                    runtime.messageManager
+                        .createMemory(responseMessage)
+                        .then(() => {
+                            const messageId = stringToUuid(
+                                Date.now().toString()
+                            );
+                            const memory: Memory = {
+                                id: messageId,
+                                agentId: runtime.agentId,
+                                userId,
+                                roomId,
+                                content,
+                                createdAt: Date.now(),
+                            };
 
-                          // run evaluators (generally can be done in parallel with processActions)
-                          // can an evaluator modify memory? it could but currently doesn't
-                          runtime.evaluate(memory, state).then(() => {
-                            // only need to call if responseMessage.content.action is set
-                            if (contentObj.action) {
-                                // pass memory (query) to any actions to call
-                                runtime.processActions(
-                                    memory,
-                                    [responseMessage],
-                                    state,
-                                    async (_newMessages) => {
-                                        // FIXME: this is supposed override what the LLM said/decided
-                                        // but the promise doesn't make this possible
-                                        //message = newMessages;
-                                        return [memory];
-                                    }
-                                ); // 0.674s
-                            }
-                            resolve(true);
+                            // run evaluators (generally can be done in parallel with processActions)
+                            // can an evaluator modify memory? it could but currently doesn't
+                            runtime.evaluate(memory, state).then(() => {
+                                // only need to call if responseMessage.content.action is set
+                                if (contentObj.action) {
+                                    // pass memory (query) to any actions to call
+                                    runtime.processActions(
+                                        memory,
+                                        [responseMessage],
+                                        state,
+                                        async (_newMessages) => {
+                                            // FIXME: this is supposed override what the LLM said/decided
+                                            // but the promise doesn't make this possible
+                                            //message = newMessages;
+                                            return [memory];
+                                        }
+                                    ); // 0.674s
+                                }
+                                resolve(true);
+                            });
                         });
-                    });
                 });
                 res.json({ response: hfOut });
             }

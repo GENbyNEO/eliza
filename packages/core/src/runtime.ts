@@ -1212,7 +1212,7 @@ Text: ${attachment.text}
             knowledgeData = await this.ragKnowledgeManager.getKnowledge({
                 query: message.content.text,
                 conversationContext: recentContext,
-                limit: 5,
+                limit: 10,
             });
 
             formattedKnowledge = formatKnowledge(knowledgeData);

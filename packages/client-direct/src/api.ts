@@ -355,7 +355,7 @@ export function createApiRouter(
                 return;
             }
 
-            const knowledgeId = id ? stringToUuid(id) : stringToUuid(text);
+            const knowledgeId = validateUuid(id);
 
             await runtime.ragKnowledgeManager.createKnowledge({
                 id: knowledgeId,
