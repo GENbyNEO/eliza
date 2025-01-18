@@ -414,6 +414,34 @@ export function createApiRouter(
         }
     });
 
+    router.delete("/agents/:agentId/knowledge", async (req, res) => {
+        const { agentId } = validateUUIDParams(req.params, res) ?? {
+            agentId: null,
+        };
+        if (!agentId) return;
+
+        const runtime = agents.get(agentId);
+        if (!runtime) {
+            res.status(404).json({ error: "Agent not found" });
+            return;
+        }
+
+        try {
+            await runtime.ragKnowledgeManager.clearKnowledge(false);
+
+            res.json({
+                success: true,
+                message: "Knowledge cleared successfully",
+            });
+        } catch (error) {
+            elizaLogger.error("Error clearing knowledge:", error);
+            res.status(500).json({
+                error: "Failed to clear knowledge",
+                details: error.message,
+            });
+        }
+    });
+
     router.delete(
         "/agents/:agentId/knowledge/:knowledgeId",
         async (req, res) => {
