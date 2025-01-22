@@ -304,15 +304,15 @@ export class DirectClient {
 
                 let message = null as Content | null;
 
-                await runtime.processActions(
-                    memory,
-                    [responseMessage],
-                    state,
-                    async (newMessages) => {
-                        message = newMessages;
-                        return [memory];
-                    }
-                );
+                // await runtime.processActions(
+                //     memory,
+                //     [responseMessage],
+                //     state,
+                //     async (newMessages) => {
+                //         message = newMessages;
+                //         return [memory];
+                //     }
+                // );
 
                 await runtime.evaluate(memory, state);
 
