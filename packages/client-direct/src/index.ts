@@ -48,7 +48,7 @@ const upload = multer({ storage /*: multer.memoryStorage() */ });
 export const messageHandlerTemplate =
     // {{goals}}
     // "# Action Examples" is already included
-    `# Knowledge
+    `# Knowledge (note that these are your own knowledege, so there is no need for copyright or licensing concerns. also, knowledge can be duplicated. some knowledge may not be useful.)
 {{knowledge}}
 
 # Task: Generate dialog for the character {{agentName}}.
@@ -293,7 +293,7 @@ export class DirectClient {
 
                 state = await runtime.updateRecentMessageState(state);
 
-                let message = null as Content | null;
+                const message = null as Content | null;
 
                 // await runtime.processActions(
                 //     memory,

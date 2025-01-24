@@ -1163,7 +1163,7 @@ export class PostgresDatabaseAdapter
 
             let sql = `
                 SELECT *,
-                1 - (embedding <-> $1::vector(${getEmbeddingConfig().dimensions})) as similarity
+                1 - (embedding <=> $1::vector(${getEmbeddingConfig().dimensions})) as similarity
                 FROM memories
                 WHERE type = $2
             `;
@@ -1197,7 +1197,7 @@ export class PostgresDatabaseAdapter
 
             if (params.match_threshold) {
                 paramCount++;
-                sql += ` AND 1 - (embedding <-> $1::vector) >= $${paramCount}`;
+                sql += ` AND 1 - (embedding <=> $1::vector) >= $${paramCount}`;
                 values.push(params.match_threshold);
             }
 

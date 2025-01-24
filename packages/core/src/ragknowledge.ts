@@ -288,7 +288,7 @@ export class RAGKnowledgeManager implements IRAGKnowledgeManager {
             });
 
             // Generate and store chunks
-            const chunks = await splitChunks(processedContent, 512, 20);
+            const chunks = await splitChunks(processedContent, 7000, 1400);
 
             for (const [index, chunk] of chunks.entries()) {
                 const chunkEmbeddingArray = await embed(this.runtime, chunk);
