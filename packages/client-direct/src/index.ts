@@ -260,6 +260,7 @@ export class DirectClient {
                 let state = await runtime.composeState(userMessage, {
                     agentName: runtime.character.name,
                 });
+                elizaLogger.log("Retrieved knowledge: ", state.knowledge)
 
                 const context = composeContext({
                     state,
