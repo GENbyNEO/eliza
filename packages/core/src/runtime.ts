@@ -1214,7 +1214,6 @@ Text: ${attachment.text}
                 conversationContext: recentContext,
                 limit: 10,
             });
-            elizaLogger.log("Retrieved knowledge: ", knowledgeData)
 
             formattedKnowledge = formatKnowledge(knowledgeData);
         } else {

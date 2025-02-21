@@ -260,7 +260,8 @@ export class DirectClient {
                 let state = await runtime.composeState(userMessage, {
                     agentName: runtime.character.name,
                 });
-                elizaLogger.log("Retrieved knowledge: ", state.knowledge)
+                const knowledgeIds = state.knowledgeData ?
+                    state.knowledgeData.map((knowledge) => knowledge.id.replace(/-chunk-\d+$/, '')) : [];
 
                 const context = composeContext({
                     state,
@@ -317,13 +318,13 @@ export class DirectClient {
 
                 if (!shouldSuppressInitialMessage) {
                     if (message) {
-                        res.json([response, message]);
+                        res.json([response, message, knowledgeIds]);
                     } else {
-                        res.json([response]);
+                        res.json([response, knowledgeIds]);
                     }
                 } else {
                     if (message) {
-                        res.json([message]);
+                        res.json([message, knowledgeIds]);
                     } else {
                         res.json([]);
                     }
