@@ -58,11 +58,7 @@ About {{agentName}}:
 {{recentMessages}}
 
 # Instructions: Write the next message for {{agentName}}.
-\nResponse format should be formatted in a JSON block like this:
-\`\`\`json
-{ "user": "{{agentName}}", "text": "string", "action": "string", "related_document_ids": "array of strings" }
-\`\`\`
-`;
+` + messageCompletionFooter;
 
 export const hyperfiHandlerTemplate = `{{actionExamples}}
 (Action examples are for reference only. Do not use the information from them in your response.)
@@ -265,7 +261,7 @@ export class DirectClient {
                     agentName: runtime.character.name,
                 });
                 const knowledgeIds = state.knowledgeData ?
-                    state.knowledgeData.map((knowledge) => knowledge.id.replace(/-chunk-\d+$/, '')) : [];
+                    state.knowledgeData.map((knowledge) => knowledge.id.replace(/-chunk-\d+$/, '')) : []; // This will return the retrieved document ids (10 in total)
 
                 const context = composeContext({
                     state,
@@ -277,11 +273,6 @@ export class DirectClient {
                     context,
                     modelClass: ModelClass.LARGE,
                 });
-
-                elizaLogger.log("Message response....")
-                elizaLogger.log(response)
-                elizaLogger.log("Message context....")
-                elizaLogger.log(context)
 
                 if (!response) {
                     res.status(500).send(

@@ -1213,7 +1213,7 @@ Text: ${attachment.text}
                 query: message.content.text,
                 conversationContext: recentContext,
                 limit: 10,
-            });
+            }); // This will retrieve 10 knowledge documents
 
             formattedKnowledge = formatKnowledge(knowledgeData);
         } else {
