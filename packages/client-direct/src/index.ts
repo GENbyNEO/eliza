@@ -58,7 +58,11 @@ About {{agentName}}:
 {{recentMessages}}
 
 # Instructions: Write the next message for {{agentName}}.
-` + messageCompletionFooter;
+\nResponse format should be formatted in a JSON block like this:
+\`\`\`json
+{ "user": "{{agentName}}", "text": "string", "action": "string", "knowledge_ids": "array of strings" }
+\`\`\`
+`;
 
 export const hyperfiHandlerTemplate = `{{actionExamples}}
 (Action examples are for reference only. Do not use the information from them in your response.)
@@ -274,6 +278,7 @@ export class DirectClient {
                     modelClass: ModelClass.LARGE,
                 });
 
+                elizaLogger.log(response)
                 if (!response) {
                     res.status(500).send(
                         "No response from generateMessageResponse"
