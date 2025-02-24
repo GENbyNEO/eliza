@@ -278,7 +278,11 @@ export class DirectClient {
                     modelClass: ModelClass.LARGE,
                 });
 
+                elizaLogger.log("Message response....")
                 elizaLogger.log(response)
+                elizaLogger.log("Message context....")
+                elizaLogger.log(context)
+
                 if (!response) {
                     res.status(500).send(
                         "No response from generateMessageResponse"
