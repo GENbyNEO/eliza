@@ -60,7 +60,7 @@ About {{agentName}}:
 # Instructions: Write the next message for {{agentName}}.
 \nResponse format should be formatted in a JSON block like this:
 \`\`\`json
-{ "user": "{{agentName}}", "text": "string", "action": "string", "knowledge_ids": "array of strings" }
+{ "user": "{{agentName}}", "text": "string", "action": "string", "related_document_ids": "array of strings" }
 \`\`\`
 `;
 
