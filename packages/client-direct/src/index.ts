@@ -262,6 +262,7 @@ export class DirectClient {
                 });
                 const knowledgeIds = state.knowledgeData ?
                     state.knowledgeData.map((knowledge) => knowledge.id.replace(/-chunk-\d+$/, '')) : []; // This will return the retrieved document ids (10 in total)
+                elizaLogger.log("Retrieved knowledge IDs: ", knowledgeIds)
 
                 const context = composeContext({
                     state,
