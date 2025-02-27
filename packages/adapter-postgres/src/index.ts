@@ -1548,15 +1548,15 @@ export class PostgresDatabaseAdapter
         searchText?: string;
     }): Promise<RAGKnowledgeItem[]> {
         return this.withDatabase(async () => {
-            const cacheKey = `embedding_${params.agentId}_${params.searchText}`;
-            const cachedResult = await this.getCache({
-                key: cacheKey,
-                agentId: params.agentId,
-            });
+            // const cacheKey = `embedding_${params.agentId}_${params.searchText}`;
+            // const cachedResult = await this.getCache({
+            //     key: cacheKey,
+            //     agentId: params.agentId,
+            // });
 
-            if (cachedResult) {
-                return JSON.parse(cachedResult);
-            }
+            // if (cachedResult) {
+            //     return JSON.parse(cachedResult);
+            // }
 
             const vectorStr = `[${Array.from(params.embedding).join(",")}]`;
 
@@ -1620,11 +1620,11 @@ export class PostgresDatabaseAdapter
                 similarity: row.combined_score,
             }));
 
-            await this.setCache({
-                key: cacheKey,
-                agentId: params.agentId,
-                value: JSON.stringify(results),
-            });
+            // await this.setCache({
+            //     key: cacheKey,
+            //     agentId: params.agentId,
+            //     value: JSON.stringify(results),
+            // });
 
             return results;
         }, "searchKnowledge");
