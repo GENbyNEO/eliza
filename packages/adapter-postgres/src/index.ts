@@ -1607,7 +1607,7 @@ export class PostgresDatabaseAdapter
             ]);
 
             const results = rows.map((row) => ({
-                id: row.id,
+                id: row.originalId !== null && row.originalId !== undefined ? row.originalId : row.id,
                 agentId: row.agentId,
                 content:
                     typeof row.content === "string"
