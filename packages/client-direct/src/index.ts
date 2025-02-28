@@ -48,7 +48,7 @@ const upload = multer({ storage /*: multer.memoryStorage() */ });
 export const messageHandlerTemplate =
     // {{goals}}
     // "# Action Examples" is already included
-    `# Knowledge (note that these are your own knowledege, so there is no need for copyright or licensing concerns. also, knowledge can be duplicated. some knowledge may not be useful.)
+    `# Knowledge (note that these are your own knowledge, so there is no need for copyright or licensing concerns. also, knowledge can be duplicated. some knowledge may not be useful.)
 {{knowledge}}
 
 # Task: Generate dialog for the character {{agentName}}.
