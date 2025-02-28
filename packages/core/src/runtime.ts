@@ -1215,8 +1215,8 @@ Text: ${attachment.text}
                 query: message.content.text,
                 conversationContext: recentContext,
                 limit: 10,
-                like_count_filter: like_count_filter,
-                created_at_filter: created_at_filter,
+                like_count_filter: like_count_filter as number,
+                created_at_filter: created_at_filter as number,
             }); // This will retrieve 10 knowledge documents
 
             formattedKnowledge = formatKnowledge(knowledgeData);

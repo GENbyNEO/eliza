@@ -1564,34 +1564,31 @@ export class PostgresDatabaseAdapter
 
             const sql = `
                 WITH filtered_documents AS (
-                    SELECT
-                        k.*,
+                    SELECT k.*
                     FROM knowledge k
                     WHERE ("agentId" IS NULL AND "isShared" = true) OR "agentId" = $2
                     AND embedding IS NOT NULL
                     AND (
                         $6::text IS NULL
-                        OR (content->>'metadata' ? 'likes' AND (content->>'metadata'->>'likes')::integer >= $6::integer)
+                        OR (content->'metadata' ? 'likes' AND (content->'metadata'->>'likes')::integer >= $6::integer)
                     )
                     AND (
-                        $7::timestamp IS NULL
-                        OR (content->>'metadata' ? 'createdAt' AND (content->>'metadata'->>'createdAt')::timestamp > $7::timestamp)
+                        $7 IS NULL
+                        OR (content->'metadata' ? 'originalCreatedAt' AND (content->'metadata'->>'originalCreatedAt')::timestamp > to_timestamp($7))
                     )
                 ),
-                WITH document_array AS (
-                    SELECT array_agg(content->>'text') as all_docs
-                    FROM filtered_documents
-                )
-                WITH vector_scores AS (
+                vector_scores AS (
                     SELECT id,
                         1 - (embedding <=> $1::vector) as vector_score
                     FROM filtered_documents
                 ),
                 keyword_matches AS (
                     SELECT id,
-                    bm25_score($3, content->>'text', (
-                        SELECT all_docs FROM document_array
-                    )) *
+                    CASE
+                        WHEN to_tsvector(k.content->>'text') @@ tsquery($3) THEN 2 + ts_rank(to_tsvector(k.content->>'text'), tsquery($3))
+                        ELSE 1.0
+                    END
+                    *
                     CASE
                         WHEN (content->'metadata'->>'isChunk')::boolean = true THEN 1.5
                         WHEN (content->'metadata'->>'isMain')::boolean = true THEN 1.2
@@ -1599,43 +1596,41 @@ export class PostgresDatabaseAdapter
                     END *
                     -- Recency boost
                     CASE
-                        WHEN content->>'metadata' ? 'createdAt' AND
-                            (content->>'metadata'->>'createdAt')::timestamp > CURRENT_TIMESTAMP - INTERVAL '30 days'
+                        WHEN content->'metadata' ? 'originalCreatedAt' AND
+                            (content->'metadata'->>'originalCreatedAt')::timestamp > CURRENT_TIMESTAMP - INTERVAL '30 days'
                         THEN 1.5 - (
-                            EXTRACT(EPOCH FROM ((content->>'metadata'->>'createdAt')::timestamp - (CURRENT_TIMESTAMP - INTERVAL '30 days'))) /
+                            EXTRACT(EPOCH FROM ((content->'metadata'->>'originalCreatedAt')::timestamp - (CURRENT_TIMESTAMP - INTERVAL '30 days'))) /
                             EXTRACT(EPOCH FROM INTERVAL '30 days')
                         ) * 0.5
                         ELSE 1.0
                     END *
                     -- Popularity boost
                     CASE
-                        WHEN content->>'metadata' ? 'likes' AND (content->>'metadata'->>'likes')::int > 0
-                        THEN 1.0 + LEAST(LN((content->>'metadata'->>'likes')::int + 1) / 10.0, 0.5)
+                        WHEN content->'metadata' ? 'likes' AND (content->'metadata'->>'likes')::int > 0
+                        THEN 1.0 + LEAST(LN((content->'metadata'->>'likes')::int + 1) / 10.0, 0.5)
                         ELSE 1.0
                     END as keyword_score
                     FROM filtered_documents
-                    WHERE ("agentId" IS NULL AND "isShared" = true) OR "agentId" = $2
-                ),
+                )
                 SELECT k.*,
                     v.vector_score,
                     kw.keyword_score,
-                    (v.vector_score + kw.keyword_score) as combined_score,
+                    (v.vector_score + kw.keyword_score) as combined_score
                 FROM filtered_documents k
                 JOIN vector_scores v ON k.id = v.id
                 LEFT JOIN keyword_matches kw ON k.id = kw.id
-                WHERE ("agentId" IS NULL AND "isShared" = true) OR k."agentId" = $2
-                AND (
+                WHERE (
                     v.vector_score >= $4
                     OR (kw.keyword_score > 1.0 AND v.vector_score >= 0.3)
                 )
                 ORDER BY combined_score DESC
-                LIMIT $5
+                LIMIT $5;
             `;
 
             const { rows } = await this.pool.query(sql, [
                 vectorStr,
                 params.agentId,
-                `%${params.searchText || ""}%`,
+                params.searchText || "",
                 params.match_threshold,
                 params.match_count,
                 params.like_count_filter,
@@ -1695,7 +1690,7 @@ export class PostgresDatabaseAdapter
                         `
                         INSERT INTO knowledge (
                             id, "agentId", content, embedding, "createdAt",
-                            "isMain", "originalId", "chunkIndex", "isShared",
+                            "isMain", "originalId", "chunkIndex", "isShared"
                         ) VALUES ($1, $2, $3, $4, to_timestamp($5/1000.0), $6, $7, $8, $9)
                         ON CONFLICT (id) DO NOTHING
                     `,
@@ -1802,7 +1797,7 @@ export class PostgresDatabaseAdapter
             `
             INSERT INTO knowledge (
                 id, "agentId", content, embedding, "createdAt",
-                "isMain", "originalId", "chunkIndex", "isShared",
+                "isMain", "originalId", "chunkIndex", "isShared"
             ) VALUES ($1, $2, $3, $4, to_timestamp($5/1000.0), $6, $7, $8, $9)
             ON CONFLICT (id) DO NOTHING
         `,

@@ -197,7 +197,7 @@ export class RAGKnowledgeManager implements IRAGKnowledgeManager {
                         match_threshold: this.defaultRAGMatchThreshold,
                         match_count:
                             (params.limit || this.defaultRAGMatchCount) * 2,
-                        searchText: processedQuery,
+                        searchText: processedQuery.trim().replace(/\s+/g, ' | '),
                         like_count_filter: params.like_count_filter,
                         created_at_filter: params.created_at_filter,
                     });
