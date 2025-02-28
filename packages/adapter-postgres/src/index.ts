@@ -1566,7 +1566,10 @@ export class PostgresDatabaseAdapter
                 WITH filtered_documents AS (
                     SELECT k.*
                     FROM knowledge k
-                    WHERE ("agentId" IS NULL AND "isShared" = true) OR "agentId" = $2
+                    WHERE (
+                        ("agentId" IS NULL AND "isShared" = true)
+                        OR "agentId" = $2
+                    )
                     AND embedding IS NOT NULL
                     AND (
                         $6::text IS NULL
@@ -1585,7 +1588,7 @@ export class PostgresDatabaseAdapter
                 keyword_matches AS (
                     SELECT id,
                     CASE
-                        WHEN to_tsvector(k.content->>'text') @@ tsquery($3) THEN 2 + ts_rank(to_tsvector(k.content->>'text'), tsquery($3))
+                        WHEN to_tsvector(content->>'text') @@ tsquery($3) THEN 2 + ts_rank(to_tsvector(content->>'text'), tsquery($3))
                         ELSE 1.0
                     END
                     *
