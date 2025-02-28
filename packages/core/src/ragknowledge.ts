@@ -191,7 +191,8 @@ export class RAGKnowledgeManager implements IRAGKnowledgeManager {
                 
                 const processedSearchText = processedQuery.trim().replace(/\s+/g, ' | ')
                 
-                elizaLogger.log("Search text: ", searchText)
+                elizaLogger.log("Search text: ", processedSearchText)
+
                 // Get results with single query
                 const results =
                     await this.runtime.databaseAdapter.searchKnowledge({
@@ -204,7 +205,8 @@ export class RAGKnowledgeManager implements IRAGKnowledgeManager {
                         like_count_filter: params.like_count_filter,
                         created_at_filter: params.created_at_filter,
                     });
-
+                
+                elizaLogger.debug("Retrieved knowledge: ", results.toString())
                 // Enhanced reranking with sophisticated scoring
                 const rerankedResults = results
                     .map((result) => {
