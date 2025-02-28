@@ -188,7 +188,10 @@ export class RAGKnowledgeManager implements IRAGKnowledgeManager {
                 const embeddingArray = await embed(this.runtime, searchText);
 
                 const embedding = new Float32Array(embeddingArray);
-
+                
+                const processedSearchText = processedQuery.trim().replace(/\s+/g, ' | ')
+                
+                elizaLogger.log("Search text: ", searchText)
                 // Get results with single query
                 const results =
                     await this.runtime.databaseAdapter.searchKnowledge({
@@ -197,7 +200,7 @@ export class RAGKnowledgeManager implements IRAGKnowledgeManager {
                         match_threshold: this.defaultRAGMatchThreshold,
                         match_count:
                             (params.limit || this.defaultRAGMatchCount) * 2,
-                        searchText: processedQuery.trim().replace(/\s+/g, ' | '),
+                        searchText: processedSearchText,
                         like_count_filter: params.like_count_filter,
                         created_at_filter: params.created_at_filter,
                     });
