@@ -1576,8 +1576,8 @@ export class PostgresDatabaseAdapter
                         OR (content->'metadata' ? 'likes' AND (content->'metadata'->>'likes')::integer >= $6::integer)
                     )
                     AND (
-                        $7 IS NULL
-                        OR (content->'metadata' ? 'originalCreatedAt' AND (content->'metadata'->>'originalCreatedAt')::timestamp > to_timestamp($7))
+                        $7::text IS NULL
+                        OR (content->'metadata' ? 'originalCreatedAt' AND (content->'metadata'->>'originalCreatedAt')::timestamp > to_timestamp($7::integer))
                     )
                 ),
                 vector_scores AS (
