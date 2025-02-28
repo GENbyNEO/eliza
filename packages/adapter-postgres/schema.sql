@@ -165,4 +165,91 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_created ON knowledge("agentId", "create
 CREATE INDEX IF NOT EXISTS idx_knowledge_shared ON knowledge("isShared");
 CREATE INDEX IF NOT EXISTS idx_knowledge_embedding ON knowledge USING ivfflat (embedding vector_cosine_ops);
 
+-- Add metadata to knowledge tables
+CREATE INDEX IF NOT EXISTS idx_knowledge_metadata_likes ON knowledge ((content ->> 'metadata' ->> 'likes'));
+CREATE INDEX IF NOT EXISTS idx_knowledge_metadata_created_at ON knowledge ((content ->> 'metadata' ->> 'createdAt'));
+
+-- TF-IDF
+CREATE OR REPLACE FUNCTION calculate_idf(term text, contents text[])
+RETURNS float AS $$
+DECLARE
+    N float;  -- Total number of documents
+    n float;  -- Number of documents containing the term
+BEGIN
+    N := array_length(contents, 1);
+    n := (SELECT count(*) FROM unnest(contents) c WHERE c ILIKE '%' || term || '%');
+    RETURN ln((N - n + 0.5)/(n + 0.5) + 1);
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION bm25_score(
+    query text,
+    document text,
+    all_documents text[],
+    k1 float DEFAULT 1.2,
+    b float DEFAULT 0.75
+) RETURNS float AS $$
+DECLARE
+    score float := 0;
+    query_terms text[];
+    term text;
+    tf float;
+    idf float;
+    doc_length float;
+    avg_doc_length float;
+BEGIN
+    query_terms := regexp_split_to_array(lower(query), '\s+');
+
+    doc_length := array_length(regexp_split_to_array(document, '\s+'), 1);
+
+    avg_doc_length := (
+        SELECT avg(array_length(regexp_split_to_array(d, '\s+'), 1))
+        FROM unnest(all_documents) d
+    );
+
+    FOREACH term IN ARRAY query_terms LOOP
+        tf := (
+            SELECT count(*)::float
+            FROM regexp_matches(lower(document), lower(term), 'g')
+        );
+
+        idf := calculate_idf(term, all_documents);
+
+        score := score + (
+            idf * (
+                (tf * (k1 + 1)) /
+                (tf + k1 * (1 - b + b * (doc_length / avg_doc_length)))
+            )
+        );
+    END LOOP;
+
+    SELECT
+        MAX(bm25_raw_score),
+        MIN(bm25_raw_score)
+    INTO max_score, min_score
+    FROM (
+        SELECT bm25_score(
+            query,
+            d,
+            all_documents,
+            k1,
+            b
+        ) as bm25_raw_score
+        FROM unnest(all_documents) d
+    ) scores;
+
+    IF max_score = min_score THEN
+        RETURN CASE
+            WHEN score > 0 THEN 1.0
+            ELSE 0.0
+        END;
+    ELSE
+        RETURN (score - min_score) / (max_score - min_score);
+    END IF;
+
+    RETURN score;
+END;
+$$ LANGUAGE plpgsql;
+
 COMMIT;

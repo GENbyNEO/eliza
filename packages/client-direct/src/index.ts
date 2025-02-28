@@ -259,6 +259,8 @@ export class DirectClient {
 
                 let state = await runtime.composeState(userMessage, {
                     agentName: runtime.character.name,
+                    like_filter: req.body.like_count_filter,
+                    createdAt_filter: req.body.create_at_filter,
                 });
                 const knowledgeIds = state.knowledgeData ?
                     [...new Set(state.knowledgeData.map((knowledge) =>

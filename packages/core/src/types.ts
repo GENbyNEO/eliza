@@ -1045,6 +1045,8 @@ export interface IDatabaseAdapter {
         match_threshold: number;
         match_count: number;
         searchText?: string;
+        like_count_filter?: number;
+        created_at_filter?: number;
     }): Promise<RAGKnowledgeItem[]>;
 
     createKnowledge(knowledge: RAGKnowledgeItem): Promise<void>;
@@ -1117,6 +1119,8 @@ export interface IRAGKnowledgeManager {
         limit?: number;
         conversationContext?: string;
         agentId?: UUID;
+        like_count_filter?: number;
+        created_at_filter?: number;
     }): Promise<RAGKnowledgeItem[]>;
     createKnowledge(item: RAGKnowledgeItem): Promise<void>;
     removeKnowledge(id: UUID): Promise<void>;
@@ -1458,6 +1462,8 @@ export interface RAGKnowledgeItem {
             type?: string;
             isShared?: boolean;
             [key: string]: unknown;
+            likes?: number;
+            originalCreatedAt?: number;
         };
     };
     embedding?: Float32Array;

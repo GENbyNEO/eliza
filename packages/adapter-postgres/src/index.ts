@@ -1546,6 +1546,8 @@ export class PostgresDatabaseAdapter
         match_threshold: number;
         match_count: number;
         searchText?: string;
+        like_count_filter?: number;
+        created_at_filter?: number;
     }): Promise<RAGKnowledgeItem[]> {
         return this.withDatabase(async () => {
             // const cacheKey = `embedding_${params.agentId}_${params.searchText}`;
@@ -1561,32 +1563,64 @@ export class PostgresDatabaseAdapter
             const vectorStr = `[${Array.from(params.embedding).join(",")}]`;
 
             const sql = `
+                WITH filtered_documents AS (
+                    SELECT
+                        k.*,
+                    FROM knowledge k
+                    WHERE ("agentId" IS NULL AND "isShared" = true) OR "agentId" = $2
+                    AND embedding IS NOT NULL
+                    AND (
+                        $6::text IS NULL
+                        OR (content->>'metadata' ? 'likes' AND (content->>'metadata'->>'likes')::integer >= $6::integer)
+                    )
+                    AND (
+                        $7::timestamp IS NULL
+                        OR (content->>'metadata' ? 'createdAt' AND (content->>'metadata'->>'createdAt')::timestamp > $7::timestamp)
+                    )
+                ),
+                WITH document_array AS (
+                    SELECT array_agg(content->>'text') as all_docs
+                    FROM filtered_documents
+                )
                 WITH vector_scores AS (
                     SELECT id,
                         1 - (embedding <=> $1::vector) as vector_score
-                    FROM knowledge
-                    WHERE ("agentId" IS NULL AND "isShared" = true) OR "agentId" = $2
-                    AND embedding IS NOT NULL
+                    FROM filtered_documents
                 ),
                 keyword_matches AS (
                     SELECT id,
-                    CASE
-                        WHEN content->>'text' ILIKE $3 THEN 3.0
-                        ELSE 1.0
-                    END *
+                    bm25_score($3, content->>'text', (
+                        SELECT all_docs FROM document_array
+                    )) *
                     CASE
                         WHEN (content->'metadata'->>'isChunk')::boolean = true THEN 1.5
                         WHEN (content->'metadata'->>'isMain')::boolean = true THEN 1.2
                         ELSE 1.0
+                    END *
+                    -- Recency boost
+                    CASE
+                        WHEN content->>'metadata' ? 'createdAt' AND
+                            (content->>'metadata'->>'createdAt')::timestamp > CURRENT_TIMESTAMP - INTERVAL '30 days'
+                        THEN 1.5 - (
+                            EXTRACT(EPOCH FROM ((content->>'metadata'->>'createdAt')::timestamp - (CURRENT_TIMESTAMP - INTERVAL '30 days'))) /
+                            EXTRACT(EPOCH FROM INTERVAL '30 days')
+                        ) * 0.5
+                        ELSE 1.0
+                    END *
+                    -- Popularity boost
+                    CASE
+                        WHEN content->>'metadata' ? 'likes' AND (content->>'metadata'->>'likes')::int > 0
+                        THEN 1.0 + LEAST(LN((content->>'metadata'->>'likes')::int + 1) / 10.0, 0.5)
+                        ELSE 1.0
                     END as keyword_score
-                    FROM knowledge
+                    FROM filtered_documents
                     WHERE ("agentId" IS NULL AND "isShared" = true) OR "agentId" = $2
-                )
+                ),
                 SELECT k.*,
                     v.vector_score,
                     kw.keyword_score,
-                    (v.vector_score * kw.keyword_score) as combined_score
-                FROM knowledge k
+                    (v.vector_score + kw.keyword_score) as combined_score,
+                FROM filtered_documents k
                 JOIN vector_scores v ON k.id = v.id
                 LEFT JOIN keyword_matches kw ON k.id = kw.id
                 WHERE ("agentId" IS NULL AND "isShared" = true) OR k."agentId" = $2
@@ -1604,10 +1638,12 @@ export class PostgresDatabaseAdapter
                 `%${params.searchText || ""}%`,
                 params.match_threshold,
                 params.match_count,
+                params.like_count_filter,
+                params.created_at_filter
             ]);
 
             const results = rows.map((row) => ({
-                id: row.originalId !== null && row.originalId !== undefined ? row.originalId : row.id,
+                id: row.isMain? row.id : row.originalId,
                 agentId: row.agentId,
                 content:
                     typeof row.content === "string"
@@ -1659,7 +1695,7 @@ export class PostgresDatabaseAdapter
                         `
                         INSERT INTO knowledge (
                             id, "agentId", content, embedding, "createdAt",
-                            "isMain", "originalId", "chunkIndex", "isShared"
+                            "isMain", "originalId", "chunkIndex", "isShared",
                         ) VALUES ($1, $2, $3, $4, to_timestamp($5/1000.0), $6, $7, $8, $9)
                         ON CONFLICT (id) DO NOTHING
                     `,
@@ -1766,7 +1802,7 @@ export class PostgresDatabaseAdapter
             `
             INSERT INTO knowledge (
                 id, "agentId", content, embedding, "createdAt",
-                "isMain", "originalId", "chunkIndex", "isShared"
+                "isMain", "originalId", "chunkIndex", "isShared",
             ) VALUES ($1, $2, $3, $4, to_timestamp($5/1000.0), $6, $7, $8, $9)
             ON CONFLICT (id) DO NOTHING
         `,

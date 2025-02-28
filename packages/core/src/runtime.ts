@@ -985,6 +985,8 @@ export class AgentRuntime implements IAgentRuntime {
     ) {
         const { userId, roomId } = message;
 
+        const { like_filter: like_count_filter, createdAt_filter: created_at_filter, ...remainingKeys } = additionalKeys
+
         const conversationLength = this.getConversationLength();
 
         const [actorsData, recentMessagesData, goalsData]: [
@@ -1213,6 +1215,8 @@ Text: ${attachment.text}
                 query: message.content.text,
                 conversationContext: recentContext,
                 limit: 10,
+                like_count_filter: like_count_filter,
+                created_at_filter: created_at_filter,
             }); // This will retrieve 10 knowledge documents
 
             formattedKnowledge = formatKnowledge(knowledgeData);
@@ -1364,7 +1368,7 @@ Text: ${attachment.text}
                 formattedAttachments && formattedAttachments.length > 0
                     ? addHeader("# Attachments", formattedAttachments)
                     : "",
-            ...additionalKeys,
+            ...remainingKeys,
         } as State;
 
         const actionPromises = this.actions.map(async (action: Action) => {

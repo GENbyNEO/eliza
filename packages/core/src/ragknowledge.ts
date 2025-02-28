@@ -153,6 +153,8 @@ export class RAGKnowledgeManager implements IRAGKnowledgeManager {
         conversationContext?: string;
         limit?: number;
         agentId?: UUID;
+        like_count_filter?: number;
+        created_at_filter?: number;
     }): Promise<RAGKnowledgeItem[]> {
         const agentId = params.agentId || this.runtime.agentId;
 
@@ -196,6 +198,8 @@ export class RAGKnowledgeManager implements IRAGKnowledgeManager {
                         match_count:
                             (params.limit || this.defaultRAGMatchCount) * 2,
                         searchText: processedQuery,
+                        like_count_filter: params.like_count_filter,
+                        created_at_filter: params.created_at_filter,
                     });
 
                 // Enhanced reranking with sophisticated scoring
@@ -323,12 +327,16 @@ export class RAGKnowledgeManager implements IRAGKnowledgeManager {
         match_threshold?: number;
         match_count?: number;
         searchText?: string;
+        like_count_filter?: number;
+        created_at_filter?: number;
     }): Promise<RAGKnowledgeItem[]> {
         const {
             match_threshold = this.defaultRAGMatchThreshold,
             match_count = this.defaultRAGMatchCount,
             embedding,
             searchText,
+            like_count_filter,
+            created_at_filter,
         } = params;
 
         const float32Embedding = Array.isArray(embedding)
@@ -341,6 +349,8 @@ export class RAGKnowledgeManager implements IRAGKnowledgeManager {
             match_threshold,
             match_count,
             searchText,
+            like_count_filter,
+            created_at_filter,
         });
     }
 
