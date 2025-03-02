@@ -192,7 +192,8 @@ export class RAGKnowledgeManager implements IRAGKnowledgeManager {
                 const processedSearchText = processedQuery.trim().replace(/\s+/g, ' | ')
                 
                 elizaLogger.log("Search text: ", processedSearchText)
-
+                elizaLogger.debug("Like count filter: ", params.like_count_filter)
+                elizaLogger.debug(" Created at filter: ", params.created_at_filter)
                 // Get results with single query
                 const results =
                     await this.runtime.databaseAdapter.searchKnowledge({

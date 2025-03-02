@@ -1210,7 +1210,8 @@ Text: ${attachment.text}
                 .slice(-3) // Last 3 messages
                 .map((msg) => msg.content.text)
                 .join(" ");
-
+            elizaLogger.debug("Like count filter: ", like_count_filter)
+            elizaLogger.debug(" Created at filter: ", created_at_filter)
             knowledgeData = await this.ragKnowledgeManager.getKnowledge({
                 query: message.content.text,
                 conversationContext: recentContext,
