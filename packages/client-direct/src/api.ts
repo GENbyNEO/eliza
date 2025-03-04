@@ -383,6 +383,54 @@ export function createApiRouter(
         }
     });
 
+    router.patch("/agents/:agentId/knowledge", async (req, res) => {
+        const { agentId } = validateUUIDParams(req.params, res) ?? {
+            agentId: null,
+        };
+        if (!agentId) return;
+
+        const runtime = agents.get(agentId);
+        if (!runtime) {
+            res.status(404).json({ error: "Agent not found" });
+            return;
+        }
+
+        try {
+            const { text, metadata = {}, id } = req.body;
+
+            if (!text) {
+                res.status(400).json({ error: "Text content is required" });
+                return;
+            }
+
+            const knowledgeId = validateUuid(id);
+
+            await runtime.ragKnowledgeManager.updateKnowledgeMetadata({
+                id: knowledgeId,
+                agentId: runtime.agentId,
+                content: {
+                    text,
+                    metadata: {
+                        type: "direct",
+                        ...metadata,
+                    },
+                },
+            });
+
+            res.json({
+                success: true,
+                id: knowledgeId,
+                message: "Knowledge updated successfully",
+            });
+        } catch (error) {
+            elizaLogger.error("Error updating knowledge:", error);
+            res.status(500).json({
+                error: "Failed to update knowledge",
+                details: error.message,
+            });
+        }
+    });
+
     router.get("/agents/:agentId/knowledge", async (req, res) => {
         const { agentId } = validateUUIDParams(req.params, res) ?? {
             agentId: null,

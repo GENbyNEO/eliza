@@ -1817,6 +1817,36 @@ export class PostgresDatabaseAdapter
             ]
         );
     }
+
+    async updateKnowledgeMetadata(knowledge: RAGKnowledgeItem): Promise<void> {
+        return this.withDatabase(async () => {
+            const client = await this.pool.connect();
+            try {
+                await client.query("BEGIN");
+
+                const metadata = knowledge.content.metadata || {};
+                // Update main document
+                await client.query(
+                    `
+                    UPDATE knowledge
+                    SET content = jsonb_set(content, $1, $2::jsonb)
+                    WHERE id = $3 or originalId = $3
+                `,
+                    [
+                        `{content,metadata,likes}`,
+                        metadata.likes,
+                        knowledge.id,
+                    ]
+                );
+                await client.query("COMMIT");
+            } catch (error) {
+                await client.query("ROLLBACK");
+                throw error;
+            } finally {
+                client.release();
+            }
+        }, "createKnowledge");
+    }
 }
 
 export default PostgresDatabaseAdapter;

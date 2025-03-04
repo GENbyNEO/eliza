@@ -495,4 +495,29 @@ export class RAGKnowledgeManager implements IRAGKnowledgeManager {
             throw error;
         }
     }
+
+    async updateKnowledgeMetadata(item: RAGKnowledgeItem): Promise<void> {
+        if (!item.content.metadata) {
+            elizaLogger.warn("Empty metadata to update in knowledge item");
+            return;
+        }
+        try {
+            // Update documents
+            await this.runtime.databaseAdapter.updateKnowledgeMetadata({
+                id: item.id,
+                agentId: this.runtime.agentId,
+                content: {
+                    text: item.content.text,
+                    metadata: {
+                        ...item.content.metadata,
+                        isMain: true,
+                    },
+                },
+                createdAt: Date.now(),
+            })
+        } catch (error) {
+            elizaLogger.error(`Error processing knowledge ${item.id}:`, error);
+            throw error;
+        }
+    }
 }

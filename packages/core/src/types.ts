@@ -1052,6 +1052,7 @@ export interface IDatabaseAdapter {
     createKnowledge(knowledge: RAGKnowledgeItem): Promise<void>;
     removeKnowledge(id: UUID): Promise<void>;
     clearKnowledge(agentId: UUID, shared?: boolean): Promise<void>;
+    updateKnowledgeMetadata(knowledge: RAGKnowledgeItem) : Promise<void>;
 }
 
 export interface IDatabaseCacheAdapter {
