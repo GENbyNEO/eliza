@@ -1519,6 +1519,11 @@ Text: ${attachment.text}
 
 const formatKnowledge = (knowledge: KnowledgeItem[]) => {
     return knowledge
-        .map((knowledge) => `- ${knowledge.content.text}. Metadata: ${knowledge.content?.metadata || ""}`)
+        .map((knowledge) => {
+            const metadata = knowledge.content?.metadata 
+                ? JSON.stringify(knowledge.content.metadata) 
+                : "";
+            return `- ${knowledge.content.text}. Metadata: ${metadata}`;
+        })
         .join("\n");
 };
