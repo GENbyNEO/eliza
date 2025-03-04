@@ -1524,6 +1524,10 @@ export class PGLiteDatabaseAdapter
             }
         }, "clearKnowledge");
     }
+
+    async updateKnowledgeMetadata(knowledge: RAGKnowledgeItem): Promise<void> {
+        throw new Error("Method updateKnowledgeMetadata not implemented");
+    }
 }
 
 export default PGLiteDatabaseAdapter;

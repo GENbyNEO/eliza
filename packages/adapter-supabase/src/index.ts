@@ -907,4 +907,8 @@ export class SupabaseDatabaseAdapter extends DatabaseAdapter {
             }
         }
     }
+
+    async updateKnowledgeMetadata(knowledge: RAGKnowledgeItem): Promise<void> {
+        throw new Error("Method updateKnowledgeMetadata not implemented");
+    }
 }

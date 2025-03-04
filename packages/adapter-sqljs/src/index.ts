@@ -991,4 +991,8 @@ export class SqlJsDatabaseAdapter
         stmt.run([agentId]);
         stmt.free();
     }
+
+    async updateKnowledgeMetadata(knowledge: RAGKnowledgeItem): Promise<void> {
+        throw new Error("Method updateKnowledgeMetadata not implemented");
+    }
 }

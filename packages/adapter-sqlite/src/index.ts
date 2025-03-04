@@ -947,4 +947,8 @@ export class SqliteDatabaseAdapter
             throw error;
         }
     }
+
+    async updateKnowledgeMetadata(knowledge: RAGKnowledgeItem): Promise<void> {
+        throw new Error("Method updateKnowledgeMetadata not implemented");
+    }
 }
