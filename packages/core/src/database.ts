@@ -425,6 +425,13 @@ export abstract class DatabaseAdapter<DB = any> implements IDatabaseAdapter {
     abstract clearKnowledge(agentId: UUID, shared?: boolean): Promise<void>;
 
     /**
+     * Update metadata of existing knowledge item in the database.
+     * @param knowledge The knowledge item to update
+     * @returns Promise resolving when update is complete
+     */
+    abstract updateKnowledgeMetadata(knowledge: RAGKnowledgeItem) : Promise<void>;
+    
+    /**
      * Executes an operation with circuit breaker protection.
      * @param operation A function that returns a Promise to be executed with circuit breaker protection
      * @param context A string describing the context/operation being performed for logging purposes
