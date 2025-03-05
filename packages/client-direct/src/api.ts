@@ -398,11 +398,6 @@ export function createApiRouter(
         try {
             const { text, metadata = {}, id } = req.body;
 
-            if (!text) {
-                res.status(400).json({ error: "Text content is required" });
-                return;
-            }
-
             const knowledgeId = validateUuid(id);
 
             await runtime.ragKnowledgeManager.updateKnowledgeMetadata({

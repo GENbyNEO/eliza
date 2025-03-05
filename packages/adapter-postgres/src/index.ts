@@ -1830,7 +1830,7 @@ export class PostgresDatabaseAdapter
                     `
                     UPDATE knowledge
                     SET content = jsonb_set(content, $1, $2::jsonb)
-                    WHERE id = $3 or originalId = $3
+                    WHERE "id" = $3 or "originalId" = $3
                 `,
                     [
                         `{content,metadata,likes}`,
