@@ -1833,7 +1833,7 @@ export class PostgresDatabaseAdapter
                     WHERE "id" = $3 or "originalId" = $3
                 `,
                     [
-                        `{content,metadata,likes}`,
+                        ['metadata', 'likes'],
                         metadata.likes,
                         knowledge.id,
                     ]
