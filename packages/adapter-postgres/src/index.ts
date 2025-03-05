@@ -1834,7 +1834,7 @@ export class PostgresDatabaseAdapter
                 `,
                     [
                         ['metadata', 'likes'],
-                        metadata.likes,
+                        JSON.stringify(metadata.likes),
                         knowledge.id,
                     ]
                 );
